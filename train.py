@@ -47,7 +47,7 @@ def main():
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    combined = CombinedModel(window_size, latent_dim).to(device)
+    combined = CombinedModel(window_size, latent_dim, args.transformer_layers).to(device)
     optimizer = optim.Adam(combined.parameters(), lr=1e-3)
     criterion = nn.MSELoss()
 
@@ -85,7 +85,7 @@ def main():
     ecg_ty_seq_pred = predict(combined, train_dataset, args.batch_size, device)
     ecg_vy_seq_pred = predict(combined, val_dataset, args.batch_size, device)
 
-    plot_examples(output_dir, ecg_ty_seq_pred, ecg_vy_seq_pred)
+    plot_examples(args.output_dir, ecg_vy_seq, ecg_vy_seq_pred, window_size)
 
 def set_up_logging():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -93,22 +93,23 @@ def set_up_logging():
 def set_up_parser():
     default_device = 'cuda' if torch.cuda.is_available() else 'cpu'
     parser = argparse.ArgumentParser(description='ECG Autoencoder Training Script')
-    parser.add_argument('-d', '--data_path', type=str, required=True, help='Path to the ECG dataset')
-    parser.add_argument('-o', '--output_dir', type=str, required=True, help='Directory to save output')
-    parser.add_argument('-w', '--window_size', type=int, default=64, help='Window size for the model')
-    parser.add_argument('-l', '--latent_dim', type=int, default=16, help='Latent dimension size for the model')
+    parser.add_argument('-d', '--data-path', type=str, required=True, help='Path to the ECG dataset')
+    parser.add_argument('-o', '--output-dir', type=str, required=True, help='Directory to save output')
+    parser.add_argument('-w', '--window-size', type=int, default=64, help='Window size for the model')
+    parser.add_argument('-l', '--latent-dim', type=int, default=16, help='Latent dimension size for the model')
+    parser.add_argument('-t', '--transformer-layers', type=int, default=1, help='Number of transformer block layers')
     parser.add_argument('-e', '--epochs', type=int, default=10, help='Number of training epochs')
-    parser.add_argument('-b', '--batch_size', type=int, default=64, help='Batch size for training')
+    parser.add_argument('-b', '--batch-size', type=int, default=64, help='Batch size for training')
     parser.add_argument('--device', type=str, default=default_device)
     return parser
 
-def plot_examples(output_dir, ecg_ty_seq_pred, ecg_vy_seq_pred):
+def plot_examples(output_dir, ecg_seq, ecg_seq_pred, window_size):
     # Plot and save a single sample
     idx = 1917
-    plot_sample(ecg_vy_seq[idx], ecg_vy_seq_pred[idx], idx, window_size, f'{output_dir}/sample_plot.png')
+    plot_sample(ecg_seq[idx], ecg_seq_pred[idx], idx, window_size, f'{output_dir}/sample_plot.png')
 
     # Plot and save a sequence
-    plot_sequence(ecg_vy_seq, ecg_vy_seq_pred, 50, 75, '{output_dir}/sequence_plot.png')
+    plot_sequence(ecg_seq, ecg_seq_pred, 50, 75, f'{output_dir}/sequence_plot.png')
 
 def predict(model, dataset, batch_size, device):
     model.eval()
