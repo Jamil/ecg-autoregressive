@@ -23,25 +23,25 @@ class TransformerBlock(nn.Module):
         return x
 
 class CombinedModel(nn.Module):
-    def __init__(self, input_dim, latent_dim, num_transformer_blocks=1):
+    def __init__(self, input_dim, latent_dim, num_transformer_blocks=1, encoder_hidden_dim=64, dim_feedforward=256, num_heads=4):
         super(CombinedModel, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Linear(input_dim, 64),
+            nn.Linear(input_dim, encoder_hidden_dim),
             nn.ReLU(),
-            nn.Linear(64, latent_dim)
+            nn.Linear(encoder_hidden_dim, latent_dim)
         )
         self.decoder = nn.Sequential(
-            nn.Linear(latent_dim, 64),
+            nn.Linear(latent_dim, encoder_hidden_dim),
             nn.ReLU(),
-            nn.Linear(64, input_dim)
+            nn.Linear(encoder_hidden_dim, input_dim)
         )
         self.transformer_blocks = nn.ModuleList([
-            TransformerBlock(latent_dim, num_heads=4, dim_feedforward=256)
+            TransformerBlock(latent_dim, num_heads=num_heads, dim_feedforward=dim_feedforward)
             for _ in range(num_transformer_blocks)
         ])
         self.transformer_flatten = nn.Flatten()
-        self.transformer_decoder1 = nn.Linear(160, 256)
-        self.transformer_decoder2 = nn.Linear(256, latent_dim)
+        self.transformer_decoder1 = nn.Linear(10 * latent_dim, dim_feedforward)
+        self.transformer_decoder2 = nn.Linear(dim_feedforward, latent_dim)
 
     def forward(self, x):
         x = self.encoder(x)
