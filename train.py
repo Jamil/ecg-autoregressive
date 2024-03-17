@@ -11,8 +11,9 @@ import wandb
 from tqdm import tqdm
 from torch.utils.data import DataLoader, TensorDataset
 
+from vit import *
 from data import *
-from model import CombinedModel
+from model import CombinedModel, TEModel
 
 def main():
     parser = set_up_parser()
@@ -30,15 +31,16 @@ def main():
     test_dataset = HDF5Dataset(H5_PATH, window_size=args.window_size, split_type='test', autoregressive=True)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    combined = CombinedModel(
-            window_size, 
-            latent_dim, 
-            num_transformer_blocks = args.num_transformer_blocks,
-            encoder_hidden_dim = args.encoder_hidden_dim,
-            dim_feedforward = args.dim_feedforward,
-            num_heads = args.num_heads
-    ).to(device)
-    optimizer = optim.Adam(combined.parameters(), lr=1e-3)
+#   combined = TEModel(
+#           window_size, 
+#           latent_dim, 
+#           num_transformer_blocks = args.num_transformer_blocks,
+#           encoder_hidden_dim = args.encoder_hidden_dim,
+#           dim_feedforward = args.dim_feedforward,
+#           num_heads = args.num_heads
+#   ).to(device)
+    combined = vit_base(patch_size=window_size).to(device)
+    optimizer = optim.AdamW(combined.parameters(), lr=1e-3)
     criterion = nn.MSELoss()
 
     for epoch in range(args.epochs):
@@ -98,7 +100,8 @@ def set_up_logging(args, output_dir, hyperparams):
 
 def create_output_directory(args):
     # Generate directory name based on hyperparameters
-    dir_name = f"models/ws{args.window_size}_ld{args.latent_dim}_tl{args.num_transformer_blocks}_e{args.epochs}_bs{args.batch_size}_ed{args.encoder_hidden_dim}_df{args.dim_feedforward}_h{args.num_heads}"
+#   dir_name = f"models/ws{args.window_size}_ld{args.latent_dim}_tl{args.num_transformer_blocks}_e{args.epochs}_bs{args.batch_size}_ed{args.encoder_hidden_dim}_df{args.dim_feedforward}_h{args.num_heads}"
+    dir_name = 'vit_base'
 
     model_summary = f'''
     Autoregressive task: (10, {args.window_size}) -> ({args.window_size},)
